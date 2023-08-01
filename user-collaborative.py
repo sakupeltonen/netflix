@@ -5,8 +5,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from preprocess import loadData, filterByRatingCount, loadMovies
 
+np.random.seed(42)
+
 file = 'test_data_long'
 #file = 'combined_data_1'
+
+# =========================================
+#           Initialize DataFrames 
+# =========================================
 
 df_rating = loadData(file, 'txt')
 
@@ -14,11 +20,7 @@ df_rating = filterByRatingCount(df_rating, 30, 200)
 
 # print('Fraction of values known: {:.2f}'.format(df_rating.shape[0] / (df_rating['movie'].nunique() * df_rating['customer'].nunique())))
 
-df_movie = loadMovies()
 
-# =========================================
-#           Initialize tables 
-# =========================================
 
 # Create a DataFrame with information for each customer
 means = df_rating.groupby('customer')['rating'].mean()
@@ -26,6 +28,12 @@ counts = df_rating.groupby('customer')['rating'].count()
 df_customers = pd.concat([means, counts], axis=1)
 df_customers.columns = ['average','count']
 
+# Create a DataFrame with information for each movie
+df_movie = loadMovies()
+ratedMovies = df_rating['movie'].values
+df_movie = df_movie.loc[df_movie.index.isin(ratedMovies)]  # only interested in movies that are rated
+df_movie.loc[ratedMovies,'nrating'] = df_rating.groupby('movie')['rating'].count()
+df_movie['nrating'] = df_movie['nrating'].astype(int)
 
 # Create a DataFrame of customers and movies
 table_rating = df_rating.pivot_table(index='customer', columns='movie', values='rating')
@@ -40,28 +48,44 @@ table_overlap = (table_rating.notna().astype(int)).dot(table_rating.notna().asty
 # Predict ratings with collaborative filtering
 # =========================================
 
-def predictRating(user, movie, k=5):
+def predictRating(user, movie, k=5, beta=20):
     """
        Predict rating of user for movie. 
+
+       Parameters:
+       user (int): Customer identifier
+       k (int): Number of neighbors considered
+       beta (int): Treshold number of common movies required from neighbors before weighing down similarity. 
     
        Returns:
        prediction: Weighted average rating of k other customers with the highest correlations in existing ratings.
     """
+    # TODO tf-idf weight for movies
+
     S = table_rating[table_rating[movie].notna()].index  # users who have rated movie
     if user in S:
-        S = S.drop(user)  # in case user already rated the movie
+        S = S.drop(user)
+    
+    
     sim = table_corr.loc[user]  # correlations between user and others
     sim = sim.loc[S]
     sim = sim.sort_values(ascending=False,na_position='last')  # sort descending. not interested in users who don't have movies in common with user
     sim = sim.iloc[:k]
     Sk = sim.index  # identifiers of users with largest correlation between user
+
+    if beta: 
+        # discount sim based on number of common movies
+        overlap = table_overlap.loc[user, Sk]
+        weight = np.minimum(overlap,beta) / beta
+        sim = sim * weight
+
     r = table_rating.loc[Sk][movie]  # ratings of Sk
     rc = (r-df_customers.loc[Sk]['average'])  # ratings of Sk centered around average of Sk
     prediction = df_customers.loc[user]['average'] + (sim * rc).sum() / (sim.abs().sum())
     return prediction
 
 
-def getPredictions(user):
+def getPredictions(user,beta=20):
     """
        Compute predictions for ratings of user for all movies.
     
@@ -81,7 +105,7 @@ def getPredictions(user):
     movies = table_rating.columns
     for movie in movies:
         # // remember to not use chained indexing when setting
-        df_prediction.loc[movie, 'pred'] = predictRating(user, movie)
+        df_prediction.loc[movie, 'pred'] = predictRating(user, movie,beta=beta)
     return df_prediction
 
     
@@ -131,9 +155,21 @@ def getRecommendation(user, n=10):
     printRatings(df, data=False, n=n)
 
 
-user = 57633
-# user = 786312
-# df_prediction = getPredictions(user)
-# print(df_prediction['data'].corr(df_prediction['pred']))
+# user = 57633
 
-getRecommendation(user)
+
+def testPredictions(n_users=50):
+    corrs = []
+    # users = table_rating.index
+    sample = table_rating.sample(n_users).index
+    for user in sample:
+        df_prediction = getPredictions(user,beta=20)
+        corr = df_prediction['data'].corr(df_prediction['pred'])
+        corrs.append(corr)
+        print(f'User {user}. Correlation {corr:.2f}')    
+    print(f'Average correlation {np.mean(corrs):.2f}')
+
+testPredictions()
+
+# beta=20, k=5, n_users=50. 0.77 average correlation
+# beta=0, k=5, n_users=10. 0.75 average correlation
