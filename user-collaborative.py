@@ -3,7 +3,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 import seaborn as sns
-from preprocess import loadData, filterByRatingCount
+from preprocess import loadData, filterByRatingCount, loadMovies
 
 file = 'test_data_long'
 #file = 'combined_data_1'
@@ -13,6 +13,8 @@ df_rating = loadData(file, 'txt')
 df_rating = filterByRatingCount(df_rating, 30, 200)
 
 # print('Fraction of values known: {:.2f}'.format(df_rating.shape[0] / (df_rating['movie'].nunique() * df_rating['customer'].nunique())))
+
+df_movie = loadMovies()
 
 # =========================================
 #           Initialize tables 
@@ -89,5 +91,12 @@ print(df_prediction['data'].corr(df_prediction['pred']))
 
 
     
+def printRatings(df):
+    df = df[df['data'].notna()]
+    df = df.sort_values(by='data', ascending=False)  # sort by rating
+    df['title'] = df_movie.loc[df.index]['title']
 
+    for i, row in df.iterrows():
+        print(f"{row['data']}\t{row['pred']:.1f}\t{row['title']}")
+     
 
