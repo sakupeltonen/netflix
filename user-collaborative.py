@@ -84,19 +84,56 @@ def getPredictions(user):
         df_prediction.loc[movie, 'pred'] = predictRating(user, movie)
     return df_prediction
 
-# user = 57633
-user = 786312
-df_prediction = getPredictions(user)
-print(df_prediction['data'].corr(df_prediction['pred']))
-
-
     
-def printRatings(df):
-    df = df[df['data'].notna()]
-    df = df.sort_values(by='data', ascending=False)  # sort by rating
+def printRatings(df, data=True, pred=True, n=10):
+    """
+       Print a list of ratings for a given user.
+    
+       Parameters:
+       df (DataFrame): DataFrame with movies as index; known ratings and predictions for user as data.
+       data (Bool): Print known ratings or not
+       pred (Bool): Print predictions or not
+       n (Int): Number of rows printed
+    """
+    if data:
+        df = df[df['data'].notna()]
+        df = df.sort_values(by='data', ascending=False)  # sort by rating
     df['title'] = df_movie.loc[df.index]['title']
 
-    for i, row in df.iterrows():
-        print(f"{row['data']}\t{row['pred']:.1f}\t{row['title']}")
+    count = 0
+    for _, row in df.iterrows():
+        count += 1
+        message = ""
+        if data:
+            message += f"{row['data']}\t"
+        if pred:
+            message += f"{row['pred']:.1f}\t"
+        message += f"{row['title']}"
+        print(message)
+
+        if count >= n-1: 
+            break
      
 
+def getRecommendation(user, n=10):
+    """
+       Get a list of recommendations for user
+    
+       Parameters:
+       user (Int): Unique identifier of user
+       n (Int): Number of recommendations
+    
+       The results are printed.
+    """
+    df = getPredictions(user)
+    df = df.sort_values(by='pred', ascending=False)
+    df = df[df['data'].isna()]
+    printRatings(df, data=False, n=n)
+
+
+user = 57633
+# user = 786312
+# df_prediction = getPredictions(user)
+# print(df_prediction['data'].corr(df_prediction['pred']))
+
+getRecommendation(user)

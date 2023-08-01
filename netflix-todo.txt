@@ -23,5 +23,6 @@ evaluate selection (line) in repl: option-shift-p
 
 
 
-print tools: 
-- for a given user, print a list of rated movies along with the ratings
+TODO
+- inverse log weight for rare movies
+- weight neighbors based on overlap
