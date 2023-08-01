@@ -1,4 +1,7 @@
 main.py
 preprocess.py
 .idea/
-data/
+data/combined_data_*.txt
+data/movie_titles.csv
+__pycache__/
+netflix-todo.txt
