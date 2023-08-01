@@ -3,5 +3,7 @@ preprocess.py
 .idea/
 data/combined_data_*.txt
 data/movie_titles.csv
+data/probe.txt
+data/qualifying.txt
 __pycache__/
 netflix-todo.txt
