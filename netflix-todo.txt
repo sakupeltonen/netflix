@@ -1,0 +1,21 @@
+Task ideas
+- for a given user, recommend 5 new movies
+    - how to do this concretely: rank all movies and pick 5 with the relatively highest score? or just highest score?
+    - how to test the result
+    - simple, most general approach: matrix completion problem, i.e. predict the rating value of a user/movie pair
+- for a given movie, find 5 similar movies
+    - cluster movies?
+
+
+should just try many approaches:
+
+1. user-based collaborative filtering
+- pearson correlation: probably easier to form a table with users as rows and movies as cols, and use pre-defined methods to compute correlations between rows
+
+
+2. model-based method: latent factor model
+
+
+evaluate selection (line) in repl: option-shift-p
+
+
