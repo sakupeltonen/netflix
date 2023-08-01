@@ -6,6 +6,9 @@ Task ideas
 - for a given movie, find 5 similar movies
     - cluster movies?
 
+General
+- NODE TO VEC
+
 
 should just try many approaches:
 
@@ -19,3 +22,6 @@ should just try many approaches:
 evaluate selection (line) in repl: option-shift-p
 
 
+
+print tools: 
+- for a given user, print a list of rated movies along with the ratings

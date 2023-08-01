@@ -39,7 +39,15 @@ table_overlap = (table_rating.notna().astype(int)).dot(table_rating.notna().asty
 # =========================================
 
 def predictRating(user, movie, k=5):
+    """
+       Predict rating of user for movie. 
+    
+       Returns:
+       prediction: Weighted average rating of k other customers with the highest correlations in existing ratings.
+    """
     S = table_rating[table_rating[movie].notna()].index  # users who have rated movie
+    if user in S:
+        S = S.drop(user)  # in case user already rated the movie
     sim = table_corr.loc[user]  # correlations between user and others
     sim = sim.loc[S]
     sim = sim.sort_values(ascending=False,na_position='last')  # sort descending. not interested in users who don't have movies in common with user
@@ -51,7 +59,35 @@ def predictRating(user, movie, k=5):
     return prediction
 
 
-user1 = 57633
-user2 = 786312
-movie = 2
-predictRating(user1, movie)
+def getPredictions(user):
+    """
+       Compute predictions for ratings of user for all movies.
+    
+       Parameters:
+       user (int): Customer identifier
+    
+       Returns:
+       df_prediction: DataFrame with movies as the index, 
+        df_prediction['data'] storing existing ratings, 
+        df_prediction['pred'] containing predictions
+    """
+    # Initialize a DataFrame with movies as the index
+    df_prediction = table_rating.loc[user].to_frame()
+    df_prediction.columns = ['data']
+    df_prediction['pred'] = float('nan')
+
+    movies = table_rating.columns
+    for movie in movies:
+        # // remember to not use chained indexing when setting
+        df_prediction.loc[movie, 'pred'] = predictRating(user, movie)
+    return df_prediction
+
+# user = 57633
+user = 786312
+df_prediction = getPredictions(user)
+print(df_prediction['data'].corr(df_prediction['pred']))
+
+
+    
+
+
