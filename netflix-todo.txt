@@ -18,7 +18,7 @@ should just try many approaches:
 
 
 2. model-based method: latent factor model
-
+- it seems that SVD has almost no loss, so the values in the reconstruction for unknown ratings simply match the placeholders
 
 evaluate selection (line) in repl: option-shift-p
 
@@ -26,4 +26,4 @@ evaluate selection (line) in repl: option-shift-p
 
 TODO
 - inverse log weight for rare movies
-- weight neighbors based on overlap
+- make sure that table_rating is not modified by the model based method. I think I saw a non-integer value there
