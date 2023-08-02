@@ -8,6 +8,7 @@ Task ideas
 
 General
 - NODE TO VEC
+- would be a good idea to restructure common tools to a single file, instead of reimplementing them
 
 
 should just try many approaches:

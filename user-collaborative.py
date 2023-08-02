@@ -34,6 +34,8 @@ ratedMovies = df_rating['movie'].values
 df_movie = df_movie.loc[df_movie.index.isin(ratedMovies)]  # only interested in movies that are rated
 df_movie.loc[ratedMovies,'nrating'] = df_rating.groupby('movie')['rating'].count()
 df_movie['nrating'] = df_movie['nrating'].astype(int)
+ncustomer = df_rating['customer'].nunique()
+df_movie['inverseUserFreq'] = np.log(ncustomer / df_movie['nrating'])   
 
 # Create a DataFrame of customers and movies
 table_rating = df_rating.pivot_table(index='customer', columns='movie', values='rating')
