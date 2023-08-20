@@ -6,6 +6,8 @@ import numpy as np
 #         Compute SVD
 # =========================================
 
+# TODO fix overfitting
+
 def completeMatrixSVD(table_rating, treshold=0.2):
     def fill_nan_with_row_avg(row):
         row[row.isna()] = row.mean()

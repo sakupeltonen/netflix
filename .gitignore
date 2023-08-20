@@ -4,5 +4,6 @@ data/combined_data_*.txt
 data/movie_titles.csv
 data/probe.txt
 data/qualifying.txt
+data/test_data_long.csv
 __pycache__/
 netflix-todo.txt
