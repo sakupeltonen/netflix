@@ -43,32 +43,21 @@ def predictRating(user, movie, table_rating, df_customers, table_corr, table_ove
     return prediction
 
 
-def getPredictions(table_rating, user,beta=20):
-    # TODO delete this
+def completeMatrixCollaborative(users, movies, table_rating, df_customers, k=5, beta=20):
     """
-       Compute predictions for ratings of user for all movies.
+       Compute predictions for ratings of each user in users for each movie in movies.
     
        Parameters:
-       user (int): Customer identifier
+       users (list(int)): List of customer identifiers
+       movies (list(int)): List of movie identifiers
+       table_rating (DataFrame): Known ratings indexed by users, in columns for each movie
+       df_customers (DataFrame): User information (number of movies rated, average rating) indexed by users
+       k (int): see predictRating
+       beta (int:) see predictRating
     
        Returns:
-       df_prediction: DataFrame with movies as the index, 
-        df_prediction['data'] storing existing ratings, 
-        df_prediction['pred'] containing predictions
+       df_prediction: DataFrame with users as index, movies as columns, containing predicted ratings 
     """
-    # Initialize a DataFrame with movies as the index
-    df_prediction = table_rating.loc[user].to_frame()
-    df_prediction.columns = ['data']
-    df_prediction['pred'] = float('nan')
-
-    movies = table_rating.columns
-    for movie in movies:
-        # // remember to not use chained indexing when setting
-        df_prediction.loc[movie, 'pred'] = predictRating(user, movie,beta=beta)
-    return df_prediction
-
-
-def completeMatrixCollaborative(users, movies, table_rating, df_customers, k=5, beta=20):
     result = pd.DataFrame(index=users, columns=movies, dtype=float)
     
     # Precompute a DataFrame of correlations between users
