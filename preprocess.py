@@ -6,28 +6,29 @@ import seaborn as sns
 import os
 
 
-def loadData(file, format):
-    if os.path.isfile(f'data/{file}.csv'):
-        return pd.read_csv(f'data/{file}.csv')
-    else:
-        df = pd.read_csv(file + '.' + format, header = None, names = ['customer', 'rating'], usecols = [0,1])
+def loadData(file):
+    # if os.path.isfile(f'{file}.csv'):
+    #     return pd.read_csv(f'{file}.csv')
+    # else:
+        
+    df = pd.read_csv(file + '.txt', header = None, names = ['customer', 'rating'], usecols = [0,1])
 
-        df['movie'] = df[df['rating'].isna()]['customer'].str.replace(':', '')
-        ## df[df['Rating'].isna()] returns a df with the rows where the movie ID appears
-        ## df[df['Rating'].isna()]['Cust_Id'].str.replace(':', '') removes the : from the movie ID
-        ## df['Movie_Id'] =    sets a movie ID attribute for those rows
+    df['movie'] = df[df['rating'].isna()]['customer'].str.replace(':', '')
+    ## df[df['Rating'].isna()] returns a df with the rows where the movie ID appears
+    ## df[df['Rating'].isna()]['Cust_Id'].str.replace(':', '') removes the : from the movie ID
+    ## df['Movie_Id'] =    sets a movie ID attribute for those rows
 
-        df['movie'].fillna(method='ffill', inplace=True)
-        ## fills the attributes for other rows using the one above
+    df['movie'].fillna(method='ffill', inplace=True)
+    ## fills the attributes for other rows using the one above
 
-        df.dropna(subset=['rating'], inplace=True)
-        ## drops the rows that contained the movie ID originally
+    df.dropna(subset=['rating'], inplace=True)
+    ## drops the rows that contained the movie ID originally
 
-        df['movie'] = df['movie'].astype(int)
+    df['movie'] = df['movie'].astype(int)
 
-        df.to_csv(f'data/{file}.csv')
+    # df.to_csv(f'{file}.csv')
 
-        return df
+    return df
 
 
 

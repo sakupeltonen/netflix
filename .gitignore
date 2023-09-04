@@ -6,3 +6,7 @@ data/qualifying.txt
 data/test_data_long.csv
 __pycache__/
 netflix-todo.txt
+
+gnn.py
+node2vec.py
+test.py

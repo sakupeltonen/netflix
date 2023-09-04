@@ -7,16 +7,17 @@ from model_based import completeMatrixSVD
 
 np.random.seed(42)
 
-file = 'data/test_data_long'
+# file = 'data/test_data_long'
+file = 'data/test_data'
 #file = 'combined_data_1'
 
 # =========================================
 #           Initialize DataFrames 
 # =========================================
 
-df_rating = loadData(file, 'txt')
+df_rating = loadData(file)
 # Filter list of ratings to only contain ratings by users with at least 30 and at most 200 ratings. 
-df_rating = filterByRatingCount(df_rating, 30, 200)
+df_rating = filterByRatingCount(df_rating, 1, 200)
 
 # count of customers and movies
 ncustomer = df_rating['customer'].nunique()
@@ -38,7 +39,7 @@ df_customers.columns = ['average','count']
 # Create a DataFrame with information for each movie
 df_movie = loadMovies()
 ratedMovies = df_rating['movie'].values
-# filter dv_movie to only contain movies that have been rated in the given dataset
+# filter df_movie to only contain movies that have been rated in the given dataset
 df_movie = df_movie.loc[df_movie.index.isin(ratedMovies)]
 # add rating count 'nrating' for each movie  
 df_movie.loc[ratedMovies,'nrating'] = df_rating.groupby('movie')['rating'].count()
