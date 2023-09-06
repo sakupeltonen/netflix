@@ -1,26 +1,6 @@
 import numpy as np
-import networkx as nx
 import random
 
-
-"""
-TODO
-- basic set up on some simple graph, e.g. karate club
-- adapt to bipartite graphs
-- adapt to graphs with signed weights
-
-
-Adapting to bipartite signed graphs: 
-=========================================
-Random walks on the projection graphs, where users (items) are adjacent if they have a common item (user).
-The weight of an edge is the product of the weights. Takes care of the sign automatically. 
-Do we need actually 4 walks,  (sign x partition)
-Only do two walks, one for each partition. The virtual edges consisting of edges with the same sign.
-
-
-The number of edges in the projection graph is potentially quite large
-
-"""
 
 class Node2Vec():
     """
@@ -28,9 +8,8 @@ class Node2Vec():
 
     Modified for bipartite graphs with signed weights
     """
-    def __init__(self, nx_G, is_directed, p, q):
-        self.G = nx_G
-        self.is_directed = is_directed
+    def __init__(self, G, p, q):
+        self.G = G
         self.p = p
         self.q = q
 
@@ -48,6 +27,8 @@ class Node2Vec():
         
         Intuitively, the enemy of my enemy is my friend: switching sides twice (in a row) should give similar nodes again
         '''
+        # TODO sided walk
+
         G = self.G
         alias_nodes = self.alias_nodes
         alias_edges = self.alias_edges
@@ -64,6 +45,7 @@ class Node2Vec():
         prev = None
         cur = start_node
 
+        walk_length = min(walk_length, len(G.nodes))
         while k < walk_length:
             #cur = _cur[p]
             cur_nbrs = sorted(G.neighbors(cur))
@@ -139,7 +121,6 @@ class Node2Vec():
         Preprocessing of transition probabilities for guiding the random walks.
         '''
         G = self.G
-        is_directed = self.is_directed
 
         # // these are only needed for the first step of each walk
         alias_nodes = {}
@@ -151,13 +132,9 @@ class Node2Vec():
 
         alias_edges = {}
 
-        if is_directed:
-            for edge in G.edges():
-                alias_edges[edge] = self.get_alias_edge(edge[0], edge[1])
-        else:
-            for edge in G.edges():
-                alias_edges[edge] = self.get_alias_edge(edge[0], edge[1])
-                alias_edges[(edge[1], edge[0])] = self.get_alias_edge(edge[1], edge[0])
+        for edge in G.edges():
+            alias_edges[edge] = self.get_alias_edge(edge[0], edge[1])
+            alias_edges[(edge[1], edge[0])] = self.get_alias_edge(edge[1], edge[0])
 
         self.alias_nodes = alias_nodes
         self.alias_edges = alias_edges

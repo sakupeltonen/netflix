@@ -1,31 +1,12 @@
 import torch 
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.optim as optim
-import networkx as nx
-from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
+
 
 class Node2VecLoss(nn.Module):
     def __init__(self):
         super(Node2VecLoss, self).__init__()
-
-    def forward_old(self, embedding, source_node, context_nodes, neg_samples):
-        source_embedding = embedding(source_node)
-        context_embedding = embedding(context_nodes)
-        neg_samples_embedding = embedding(neg_samples)
-        
-        positives = context_embedding @ source_embedding.t()
-        positives = torch.sum(positives)
-
-        negatives = neg_samples_embedding @ source_embedding.t()
-        negatives = torch.exp(negatives)
-        negatives = torch.log(torch.sum(negatives))
-        # there should at least be normalization by a factor of ((n-len(context_nodes)/num_negative_samples))
-
-        loss = positives - negatives
-        return loss
     
     def forward(self, embedding, source_node, context_nodes, neg_samples):
         # Get embeddings
@@ -48,14 +29,24 @@ class Node2VecLoss(nn.Module):
 
     
 
-def learn_embeddings(random_walks, G, embedding_size=10, num_negative_samples=5, lr=0.01, epochs=100):
-    n_nodes = len(G.nodes)
-    embedding = nn.Embedding(n_nodes, embedding_size)
+def learn_embeddings(random_walks, n, args):
+    """
+       Compute embeddings given a list of random walks
+    
+       Parameters:
+       random_walks ([[int]]): List of random walks
+       n (int): Number of nodes in the original graph. Node identifiers are assumed to be 0,...,n-1
+       args: See embedding.py
+    
+       Returns:
+       res: nn.Embedding
+    """
+    embedding = nn.Embedding(n, args.num_dimensions)
     nn.init.xavier_uniform_(embedding.weight)
     criterion = Node2VecLoss()
-    optimizer = optim.Adam(embedding.parameters(), lr=lr)
+    optimizer = optim.Adam(embedding.parameters(), lr=args.learning_rate)
 
-    for epoch in range(epochs):
+    for epoch in range(args.num_epochs):
         total_loss = 0
         for walk in random_walks:
             if len(walk) == 1: 
@@ -68,9 +59,9 @@ def learn_embeddings(random_walks, G, embedding_size=10, num_negative_samples=5,
             optimizer.zero_grad()
 
             # Negative sampling
-            size = min(num_negative_samples, n_nodes-len(walk))
+            size = min(args.num_negative_samples, n-len(walk))
             assert size > 0
-            neg_samples = np.random.choice([n for n in range(n_nodes) if n not in walk], size=size, replace=False)
+            neg_samples = np.random.choice([n for n in range(n) if n not in walk], size=size, replace=False)
             neg_samples = torch.tensor(neg_samples)
 
             # Compute the loss
@@ -82,9 +73,9 @@ def learn_embeddings(random_walks, G, embedding_size=10, num_negative_samples=5,
             torch.nn.utils.clip_grad_norm_(embedding.parameters(), max_norm=1.0)
 
             optimizer.step()
-        print(f"Epoch {epoch + 1}/{epochs}, Loss: {total_loss:.4f}")
+        print(f"Epoch {epoch + 1}/{args.num_epochs}, Loss: {total_loss:.4f}")
 
-    res = embedding(torch.arange(n_nodes)).detach().numpy()
+    res = embedding(torch.arange(n)).detach().numpy()
     return res
 
 """
@@ -93,59 +84,9 @@ n = 4
 G = nx.path_graph(n)
 G = G.to_undirected()
 random_walks = [[0,1], [1,2], [1,2,3]]
-emb = learn_embedding(random_walks, G, embedding_size=2, lr=0.1, epochs=10)
+emb = learn_embedding(random_walks, G, embedding_size=2, lr=0.1, num_epochs=10)
 
 all_embeddings = emb(torch.arange(n)).detach().numpy()
 positions = {i: tuple(all_embeddings[i,:]) for i in range(n)}
 nx.draw(G, pos=positions, with_labels=True, node_color='lightblue', node_size=400)
 """
-
-# all_embeddings = emb(torch.arange(n)).detach().numpy()
-# pca = PCA(n_components=2)
-# pca_result = pca.fit_transform(all_embeddings)
-# positions = {i: (pca_result[i, 0], pca_result[i, 1]) for i in range(n)}
-
-# nx.draw(G, pos=positions, with_labels=True, node_color='lightblue', node_size=400)
-# plt.show()
-
-
-
-# n_emb = 3
-# n_node = 4
-
-# embeddings = torch.arange(1, n_node*n_emb+1).view((n_node, n_emb))
-
-# node = 0
-# neighbors = torch.tensor([1,2])
-# neg_samples = torch.tensor([2,3])
-
-# positives = embeddings[neighbors,:] @ embeddings[node,:]
-# positives = torch.sum(positives)
-
-# negatives = embeddings[neg_samples,:] @ embeddings[node,:]
-# negatives = torch.exp(negatives)
-# negatives = torch.log(torch.sum(negatives))
-
-# loss = positives - negatives
-
-
-
-
-# embeddings = nn.Embedding(n_node, n_emb)
-
-# node = 0
-# neighbors = torch.tensor([1,2])
-# neg_samples = torch.tensor([2,3])
-
-# node_emb = embeddings(torch.tensor([node]))
-# context_emb = embeddings(neighbors)
-# neg_emb = embeddings(neg_samples)
-
-# positives = context_emb @ node_emb.t()
-# positives = torch.sum(positives)
-
-# negatives = neg_emb @ node_emb.t()
-# negatives = torch.exp(negatives)
-# negatives = torch.log(torch.sum(negatives))
-
-# loss = positives - negatives

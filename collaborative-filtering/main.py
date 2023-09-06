@@ -8,7 +8,7 @@ from model_based import completeMatrixSVD
 np.random.seed(42)
 
 # file = 'data/test_data_long'
-file = 'data/test_data'
+file = '../data/test_data'
 #file = 'combined_data_1'
 
 # =========================================
