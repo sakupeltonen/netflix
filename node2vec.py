@@ -6,7 +6,7 @@ class Node2Vec():
     """
     Node2Vec implementation from https://github.com/aditya-grover/node2vec/tree/master
 
-    Modified for bipartite graphs with signed weights
+    The plan is to adapt this for bipartite graphs. 
     """
     def __init__(self, G, p, q):
         self.G = G
@@ -14,54 +14,29 @@ class Node2Vec():
         self.q = q
 
     def node2vec_walk(self, walk_length, start_node):
-        '''
-        Simulate a random walk starting from start node.
-
-        Modification: store two sides of the walk, both containing user and item nodes possibly. 
-        The walk starts on one side and changes to the other side whenever an edge with a negative sign is traversed. 
-        The sign is given by the rating of user for movie, after normalizing the users ratings
-        The edge weights are proportional to absolute value of normalized ratings. 
-
-        The motivation for this is to avoid constructing a projected graph from the bipartite representation, which would be very expensive. 
-        Also, this allows walks to contain both users and movies. 
-        
-        Intuitively, the enemy of my enemy is my friend: switching sides twice (in a row) should give similar nodes again
-        '''
-        # TODO sided walk
-
+        """Simulate a random walk starting from start node."""
         G = self.G
         alias_nodes = self.alias_nodes
         alias_edges = self.alias_edges
 
-        # sided_walk = ([start_node], [])
-        # side = 0
         walk = [start_node]
 
         k = 1  # counter for the length of the walk
 
-        #_prev = (None, None)  # previous node for both sides of the bipartition
-        #_cur = (start_node, None)  # current node for both sides of the bipartition
-        #p = 0  # can start in either users or movies
         prev = None
         cur = start_node
 
         walk_length = min(walk_length, len(G.nodes))
         while k < walk_length:
-            #cur = _cur[p]
             cur_nbrs = sorted(G.neighbors(cur))
             if len(cur_nbrs) > 0:
                 if k == 1:
                     # alias_nodes[cur][0], alias_nodes[cur][1] gives J, q for current node
                     next = cur_nbrs[alias_draw(alias_nodes[cur][0], alias_nodes[cur][1])] 
                 else:
-                    # prev = _prev[p]  # doesn't work: we don't have alias set up for virtual edges
                     next = cur_nbrs[alias_draw(alias_edges[(prev, cur)][0], 
                         alias_edges[(prev, cur)][1])]
                 
-                # Switch sides if traversing a negative edge
-                # if G[cur][next]['signed_weight'] < 0: 
-                #     side = 1 - side
-                # sided_walk[side].append(next)
                 walk.append(next)
 
                 k += 1
@@ -71,13 +46,10 @@ class Node2Vec():
             else:
                 break
 
-        # return sided_walk
         return walk
 
     def simulate_walks(self, num_walks, walk_length):
-        '''
-        Repeatedly simulate random walks from each node.
-        '''
+        """Repeatedly simulate random walks from each node."""
         G = self.G
         walks = []
         nodes = list(G.nodes())
@@ -86,19 +58,12 @@ class Node2Vec():
             print(str(walk_iter+1), '/', str(num_walks))
             random.shuffle(nodes)
             for node in nodes:
-                # sided_walk = self.node2vec_walk(walk_length=walk_length, start_node=node)    
-                # walks.append(sided_walk[0])
-                # if len(sided_walk[1]) > 0:
-                #     walks.append(sided_walk[1])
-
                 walk = self.node2vec_walk(walk_length=walk_length, start_node=node)
                 walks.append(walk)
         return walks
 
     def get_alias_edge(self, src, dst):
-        '''
-        Get the alias edge setup lists for a given edge.
-        '''
+        """Get the alias edge setup lists for a given edge."""
         G = self.G
         p = self.p
         q = self.q

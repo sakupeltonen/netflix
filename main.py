@@ -10,11 +10,7 @@ from word2vec import learn_embeddings
 from preprocess import loadData, filterByRatingCount
 
 def parse_args():
-    '''
-    Parses the node2vec arguments.
-    '''
     parser = argparse.ArgumentParser(description="Run node2vec.")
-
     
     parser.add_argument('--ratings-file', nargs='?', default='data/test_data_long',
                         help='Input data path')
