@@ -45,48 +45,11 @@ def parse_args():
     return parser.parse_args()
 
 
-def _read_netflix_graph(file):
-    df = loadData(file)
-    df = filterByRatingCount(df, 30, 200)
-    df['customer'] = 'c' + df['customer']
-    df['movie'] = 'm' + df['movie'].astype(str)
-    
-
-    # Create a df of customers
-    means = df.groupby('customer')['rating'].mean()
-    counts = df.groupby('customer')['rating'].count()
-    df_customers = pd.concat([means, counts], axis=1)
-    df_customers.columns = ['average','count']
-
-    # Construct bipartite graph of normalized ratings
-    G = nx.Graph()
-    global_average_rating = df['rating'].mean()
-    for _, row in df.iterrows():
-        customer = row['customer']
-        average_rating = df_customers.loc[customer, 'average']
-        # weight_normalized = row['rating'] - average_rating
-        weight_normalized = row['rating'] - (average_rating + global_average_rating)/2
-        if weight_normalized != 0:
-            G.add_edge(customer, row['movie'], weight=abs(weight_normalized), signed_weight=weight_normalized)
-
-    return G
-
-
-def _read_test_graph(G):
-    """Set up basic nx graph for testing the embedding"""
-    G = G.to_undirected()
-    for edge in G.edges():
-        # // this is the correct way to access edge attributes 
-        G[edge[0]][edge[1]]['weight'] = 1
-        G[edge[0]][edge[1]]['signed_weight'] = 1
-    return G
-
-
 def main(args):
-    # G = _read_netflix_graph(args.file)
-    # G = _read_test_graph(nx.karate_club_graph())
-    G = _read_test_graph(nx.cycle_graph(100))
-    n = len(G.nodes)
+    n = 100
+    G = nx.cycle_graph(n)
+    for edge in G.edges():
+        G[edge[0]][edge[1]]['weight'] = 1
 
     walker = node2vec.Node2Vec(G, args.p, args.q)
     walker.preprocess_transition_probs()
@@ -95,8 +58,6 @@ def main(args):
     emb = learn_embeddings(walks, n, args)
     _test_basic_embedding(emb, G)
     visualize_emb(emb, G)
-    # TODO sided walk
-    # TODO recommendations. can mostly reuse code from collaborative-filtering/main.py
     
 
 
@@ -114,7 +75,7 @@ def visualize_emb(embeddings, G):
 
 
 def _test_basic_embedding(emb, G):
-    """Test embedding for a simple undirected graph without weights"""
+    """Compute statistics for embedding of a simple undirected graph without weights"""
     n = len(G.nodes)
     dist_conn = [np.linalg.norm(emb[e[0]] - emb[e[1]]) for e in G.edges]
     
@@ -142,3 +103,32 @@ args.num_dimensions = 2
 args.p = 0.5
 args.q = 2
 main(args)
+
+
+
+def _read_netflix_graph(file):
+    """Create a graph from netflix user ratings. Needs to be integrated to the node2vec functions"""
+    df = loadData(file)
+    df = filterByRatingCount(df, 30, 200)
+    df['customer'] = 'c' + df['customer']
+    df['movie'] = 'm' + df['movie'].astype(str)
+    
+
+    # Create a df of customers
+    means = df.groupby('customer')['rating'].mean()
+    counts = df.groupby('customer')['rating'].count()
+    df_customers = pd.concat([means, counts], axis=1)
+    df_customers.columns = ['average','count']
+
+    # Construct bipartite graph of normalized ratings
+    G = nx.Graph()
+    global_average_rating = df['rating'].mean()
+    for _, row in df.iterrows():
+        customer = row['customer']
+        average_rating = df_customers.loc[customer, 'average']
+        # weight_normalized = row['rating'] - average_rating
+        weight_normalized = row['rating'] - (average_rating + global_average_rating)/2
+        if weight_normalized != 0:
+            G.add_edge(customer, row['movie'], weight=abs(weight_normalized), signed_weight=weight_normalized)
+
+    return G
