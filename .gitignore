@@ -7,3 +7,4 @@ data/test_data_long.csv
 __pycache__/
 netflix-todo.txt
 launch.json
+emb/

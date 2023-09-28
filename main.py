@@ -5,7 +5,8 @@ import pandas as pd
 import node2vec
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from random import random
+import random
+from word2vec import save_embedding
 
 from sklearn.metrics import classification_report, roc_auc_score
 from sklearn.linear_model import LogisticRegression
@@ -17,11 +18,10 @@ from tools import visualize_emb
 def parse_args():
     parser = argparse.ArgumentParser(description="Run node2vec.")
     
-    parser.add_argument('--ratings-file', nargs='?', default='data/test_data_long',
+    parser.add_argument('--data-relative-path', default='data/facebook_combined.txt',
                         help='Input data path')
 
-    parser.add_argument('--output', nargs='?', default='emb/karate.emb',
-                        help='Embeddings path')
+    parser.add_argument('--save-embedding', action='store_true')
 
     parser.add_argument('--num-dimensions', type=int, default=128,
                         help='Number of dimensions. Default is 128.')
@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument('--num-negative-samples', type=int, default=50,
                         help='Number of nodes (not contained in a given walk) used for negative sampling. Default is 50.')
 
-    parser.add_argument('--num_epochs', default=1, type=int,
+    parser.add_argument('--num-epochs', default=1, type=int,
                         help='Number of epochs in SGD')
     
     parser.add_argument('--learning-rate', default=0.01, type=int,
@@ -72,7 +72,7 @@ def _test_basic_embedding(emb, G):
 
 def main(args):
     # Read Facebook graph
-    G = nx.read_edgelist('data/facebook_combined.txt', nodetype=int)
+    G = nx.read_edgelist(args.data_relative_path, nodetype=int)
 
     train_edges, test_edges = train_test_split(list(G.edges), test_size=0.1, random_state=42)
 
@@ -89,10 +89,13 @@ def main(args):
     n = len(G.nodes)
     # not all nodes are included in train_G. the embedding of those nodes is arbitrary
     emb = learn_embeddings(walks, n, args)
+
+    if args.save_embedding:
+        save_embedding(emb, training_args=vars(args))
     
     # link prediction
     non_edges = list(nx.non_edges(G))
-    negative_samples = random.sample(non_edges, len(test_edges))  # TODO should train on many more negative samples than positive samples
+    negative_samples = random.sample(non_edges, 10*len(test_edges))  # TODO should train on many more negative samples than positive samples
     negative_train_samples = negative_samples[:len(negative_samples)//2]
     negative_test_samples = negative_samples[len(negative_samples)//2:]
 
@@ -103,24 +106,26 @@ def main(args):
         if u not in train_G.nodes or v not in train_G.nodes:
             test_data.remove((u,v))
 
-    X_train = []
-    y_train = []
+    X_train = np.zeros((len(train_data), 2*args.num_dimensions))
+    y_train = np.zeros(len(train_data))
 
-    X_test = []
-    y_test = []
+    X_test = np.zeros((len(test_data), 2*args.num_dimensions))
+    y_test = np.zeros(len(test_data))
 
-    for u,v in train_data:
+    for i, edge in enumerate(train_data):
+        u, v = edge
         # Concatenate, average, or perform any operation to combine embeddings. # TODO maybe just dot product
-        feature_vector = np.concatenate([emb(u), emb(v)])
+        feature_vector = np.concatenate((emb[u], emb[v]))
 
-        X_train.append(feature_vector)
-        y_train.append(1 if (u,v) in train_edges else 0)
+        X_train[i] = feature_vector
+        y_train[i] = 1 if edge in train_edges else 0
 
-    for u, v in test_data:
-        feature_vector = np.concatenate([emb(u), emb(v)])
+    for i, edge in enumerate(test_data):
+        u, v = edge
+        feature_vector = np.concatenate((emb[u], emb[v]))
         
-        X_test.append(feature_vector)
-        y_test.append(1 if (u, v) in test_edges else 0)
+        X_test[i] = feature_vector
+        y_test[i] = 1 if edge in test_edges else 0
 
     clf = LogisticRegression()
     clf.fit(X_train, y_train)
@@ -130,10 +135,10 @@ def main(args):
     y_prob = clf.predict_proba(X_test)[:, 1]  # probability estimates of the positive class
 
     # Evaluation
-    print("Classification Report:\n", classification_report(y_test, y_pred))
-    print("AUC-ROC: ", roc_auc_score(y_test, y_prob))
+    print("Classification Report:\n", classification_report(y_test, y_pred))  # TODO what are all the results
+    print("AUC-ROC: ", roc_auc_score(y_test, y_prob))  # TODO what does this tell
 
-
+    # TODO general prediction function for a given node pair
 
 
 

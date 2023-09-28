@@ -2,7 +2,9 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-
+import os
+from datetime import datetime
+import json
 
 class Node2VecLoss(nn.Module):
     def __init__(self):
@@ -77,6 +79,40 @@ def learn_embeddings(random_walks, n, args):
 
     res = embedding(torch.arange(n)).detach().numpy()
     return res
+
+
+def save_embedding(emb, training_args=None):
+    """
+       Save embedding to file
+    
+       Parameters:
+       emb (np.array): Embedding
+    """
+    now = datetime.now()
+    timestamp = now.strftime('%b%d-%H-%M')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    emb_relative_path = 'emb/' + timestamp + '.npy'
+    emb_path = os.path.join(script_dir, emb_relative_path)
+    np.save(emb_path, emb)
+
+    if training_args:
+        session_data_relative_path = 'emb/' + timestamp + '.json'
+        session_data_path = os.path.join(script_dir, session_data_relative_path)
+        with open(session_data_path, 'w') as f:
+            json.dump(training_args, f)
+
+def load_embedding(path):
+    """
+       Load embedding from file
+    
+       Parameters:
+       path (str): Path to embedding file
+    
+       Returns:
+       emb (np.array): Embedding
+    """
+    return np.load(path)
 
 """
 # Example usage
