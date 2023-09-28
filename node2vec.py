@@ -71,11 +71,14 @@ class Node2Vec():
         unnormalized_probs = []
         for dst_nbr in sorted(G.neighbors(dst)):
             if dst_nbr == src:
-                unnormalized_probs.append(G[dst][dst_nbr]['weight']/p)
+                # unnormalized_probs.append(G[dst][dst_nbr]['weight']/p)
+                unnormalized_probs.append(1/p)
             elif G.has_edge(dst_nbr, src):
-                unnormalized_probs.append(G[dst][dst_nbr]['weight'])
+                # unnormalized_probs.append(G[dst][dst_nbr]['weight'])
+                unnormalized_probs.append(1)
             else:
-                unnormalized_probs.append(G[dst][dst_nbr]['weight']/q)
+                # unnormalized_probs.append(G[dst][dst_nbr]['weight']/q)
+                unnormalized_probs.append(1/q)
         norm_const = sum(unnormalized_probs)
         normalized_probs =  [float(u_prob)/norm_const for u_prob in unnormalized_probs]
 
@@ -90,7 +93,8 @@ class Node2Vec():
         # // these are only needed for the first step of each walk
         alias_nodes = {}
         for node in G.nodes():
-            unnormalized_probs = [G[node][nbr]['weight'] for nbr in sorted(G.neighbors(node))]
+            # unnormalized_probs = [G[node][nbr]['weight'] for nbr in sorted(G.neighbors(node))]
+            unnormalized_probs = [1 for nbr in sorted(G.neighbors(node))]
             norm_const = sum(unnormalized_probs)
             normalized_probs =  [float(u_prob)/norm_const for u_prob in unnormalized_probs]
             alias_nodes[node] = alias_setup(normalized_probs)

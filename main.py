@@ -4,6 +4,11 @@ import networkx as nx
 import pandas as pd
 import node2vec
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from random import random
+
+from sklearn.metrics import classification_report, roc_auc_score
+from sklearn.linear_model import LogisticRegression
 
 from word2vec import learn_embeddings
 from tools import visualize_emb
@@ -18,7 +23,7 @@ def parse_args():
     parser.add_argument('--output', nargs='?', default='emb/karate.emb',
                         help='Embeddings path')
 
-    parser.add_argument('--num_dimensions', type=int, default=128,
+    parser.add_argument('--num-dimensions', type=int, default=128,
                         help='Number of dimensions. Default is 128.')
 
     parser.add_argument('--walk-length', type=int, default=80,
@@ -67,19 +72,70 @@ def _test_basic_embedding(emb, G):
 
 def main(args):
     # Read Facebook graph
-    G = nx.read_edgelist('data/facebook_combined.txt', nodetype=int, data=[('weight', int)])
-    # The node2vec algorithm can also work with edge weights. In this case, everything is set to 1
-    nx.set_edge_attributes(G, values=1, name='weight')
-    # TODO separate edges into training and test sets
+    G = nx.read_edgelist('data/facebook_combined.txt', nodetype=int)
 
-    walker = node2vec.Node2Vec(G, args.p, args.q)
+    train_edges, test_edges = train_test_split(list(G.edges), test_size=0.1, random_state=42)
+
+    train_G = nx.Graph()
+    train_G.add_edges_from(train_edges)
+
+    test_G = nx.Graph()
+    test_G.add_edges_from(test_edges)
+
+    walker = node2vec.Node2Vec(train_G, args.p, args.q)
     walker.preprocess_transition_probs()
     walks = walker.simulate_walks(args.num_walks, args.walk_length)
 
     n = len(G.nodes)
+    # not all nodes are included in train_G. the embedding of those nodes is arbitrary
     emb = learn_embeddings(walks, n, args)
-    _test_basic_embedding(emb, G)
-    visualize_emb(emb, G)
+    
+    # link prediction
+    non_edges = list(nx.non_edges(G))
+    negative_samples = random.sample(non_edges, len(test_edges))  # TODO should train on many more negative samples than positive samples
+    negative_train_samples = negative_samples[:len(negative_samples)//2]
+    negative_test_samples = negative_samples[len(negative_samples)//2:]
+
+    train_data = train_edges + negative_train_samples
+    test_data = test_edges + negative_test_samples
+
+    for u,v in test_data:
+        if u not in train_G.nodes or v not in train_G.nodes:
+            test_data.remove((u,v))
+
+    X_train = []
+    y_train = []
+
+    X_test = []
+    y_test = []
+
+    for u,v in train_data:
+        # Concatenate, average, or perform any operation to combine embeddings. # TODO maybe just dot product
+        feature_vector = np.concatenate([emb(u), emb(v)])
+
+        X_train.append(feature_vector)
+        y_train.append(1 if (u,v) in train_edges else 0)
+
+    for u, v in test_data:
+        feature_vector = np.concatenate([emb(u), emb(v)])
+        
+        X_test.append(feature_vector)
+        y_test.append(1 if (u, v) in test_edges else 0)
+
+    clf = LogisticRegression()
+    clf.fit(X_train, y_train)
+
+    # Predictions
+    y_pred = clf.predict(X_test)
+    y_prob = clf.predict_proba(X_test)[:, 1]  # probability estimates of the positive class
+
+    # Evaluation
+    print("Classification Report:\n", classification_report(y_test, y_pred))
+    print("AUC-ROC: ", roc_auc_score(y_test, y_prob))
+
+
+
+
 
 
 
