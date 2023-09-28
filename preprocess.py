@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 import math
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 
 
@@ -52,3 +50,32 @@ def loadMovies():
     df_movie.set_index('id', inplace = True)
     # df_movie['year'] = df_movie['year'].astype('int')
     return df_movie
+
+
+
+def read_netflix_graph(file):
+    """Create a graph from netflix user ratings. Needs to be integrated to the node2vec functions"""
+    df = loadData(file)
+    df = filterByRatingCount(df, 30, 200)
+    df['customer'] = 'c' + df['customer']
+    df['movie'] = 'm' + df['movie'].astype(str)
+    
+
+    # Create a df of customers
+    means = df.groupby('customer')['rating'].mean()
+    counts = df.groupby('customer')['rating'].count()
+    df_customers = pd.concat([means, counts], axis=1)
+    df_customers.columns = ['average','count']
+
+    # Construct bipartite graph of normalized ratings
+    G = nx.Graph()
+    global_average_rating = df['rating'].mean()
+    for _, row in df.iterrows():
+        customer = row['customer']
+        average_rating = df_customers.loc[customer, 'average']
+        # weight_normalized = row['rating'] - average_rating
+        weight_normalized = row['rating'] - (average_rating + global_average_rating)/2
+        if weight_normalized != 0:
+            G.add_edge(customer, row['movie'], weight=abs(weight_normalized), signed_weight=weight_normalized)
+
+    return G
