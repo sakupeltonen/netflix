@@ -44,12 +44,18 @@ def parse_args():
 
     return parser.parse_args()
 
+def read_FB_graph():
+    G = nx.read_edgelist('data/facebook_combined.txt', nodetype=int, data=[('weight', int)])
+    nx.set_edge_attributes(G, values=1, name='weight')
+    return G
 
 def main(args):
-    n = 100
-    G = nx.cycle_graph(n)
-    for edge in G.edges():
-        G[edge[0]][edge[1]]['weight'] = 1
+    G = read_FB_graph()
+    n = len(G.nodes)
+    # n = 100
+    # G = nx.cycle_graph(n)
+    # for edge in G.edges():
+    #     G[edge[0]][edge[1]]['weight'] = 1
 
     walker = node2vec.Node2Vec(G, args.p, args.q)
     walker.preprocess_transition_probs()
@@ -132,3 +138,4 @@ def _read_netflix_graph(file):
             G.add_edge(customer, row['movie'], weight=abs(weight_normalized), signed_weight=weight_normalized)
 
     return G
+
